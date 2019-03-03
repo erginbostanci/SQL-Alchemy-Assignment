@@ -31,79 +31,90 @@ def welcome():
     """List all available api routes."""
     return (
         f"Available Routes:<br/>"
+        f"<br/>"
         f"/api/v1.0/precipitation<br/>"
+        f"- List of prior year rain totals from all stations<br/>"
+        f"<br/>"
         f"/api/v1.0/stations<br/>"
+        f"- List of Station numbers and names<br/>"
+        f"<br/>"
         f"/api/v1.0/tobs<br/>"
-        "/api/v1.0/&lt;start&gt;<br/>"
-        "/api/v1.0/&lt;start&gt;/&lt;end&gt;"
+        f"- List of prior year temperatures from all stations<br/>"
+        f"<br/>"
+        f"/api/v1.0/start<br/>"
+        f"- When given the start date (YYYY-MM-DD), calculates the MIN/AVG/MAX temperature for all dates greater than and equal to the start date<br/>"
+        f"<br/>"
+        f"/api/v1.0/start/end<br/>"
+        f"- When given the start and the end date (YYYY-MM-DD), calculate the MIN/AVG/MAX temperature for dates between the start and end date inclusive<br/>"
+
     )
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
-    """Return a list of all dates with precipitation"""
     
-    results = session.query(Measurement.date, Measurement.prcp).all()
-    all_measurements = []
-    for measurement in results:
-        measurement_dict = {}
-        measurement_dict[measurement.date] = measurement.prcp
-        all_measurements.append(measurement_dict)
+    
+    rain_results_db = session.query(Measurement.date, Measurement.prcp).all()
+    measurements_db = []
+    for measurement in rain_results_db:
+        measurement_lib_db = {}
+        measurement_lib_db[measurement.date] = measurement.prcp
+        measurements_db.append(measurement_lib_db)
 
    
-    return jsonify(all_measurements)
+    return jsonify(measurements_db)
 
 @app.route("/api/v1.0/stations")
 def stations():
-    """Return a list of all stations"""
     
-    results = session.query(Station.station).all()
+    
+    rain_results_db = session.query(Station.station).all()
 
     
-    all_stations = list(np.ravel(results))
+    all_stations = list(np.ravel(rain_results_db))
 
     
     return jsonify(all_stations)
 
 @app.route("/api/v1.0/tobs")
 def tobs():
-    """Return a list of all dates with temperature observations starting one year prior to last date"""
     
-    results = session.query(Measurement).filter(Measurement.date >= '2016-08-23').all()
+    
+    rain_results_db = session.query(Measurement).filter(Measurement.date >= '2016-08-23').all()
 
     
-    all_measurements = []
-    for measurement in results:
-        measurement_dict = {}
-        measurement_dict[measurement.date] = measurement.tobs
-        all_measurements.append(measurement_dict)
+    measurements_db = []
+    for measurement in rain_results_db:
+        measurement_lib_db = {}
+        measurement_lib_db[measurement.date] = measurement.tobs
+        measurements_db.append(measurement_lib_db)
 
     
-    return jsonify(all_measurements)
+    return jsonify(measurements_db)
 
 @app.route("/api/v1.0/<start>")
 @app.route("/api/v1.0/<start>/<end>")
 def temps(start, end='2017-08-23'):
-    """Return a list of temperature metrics from a given start date to the last date"""
+    
     
     def calc_temps(start_date, end_date):
-        """Return a list of temperature metrics from a given start date to a given end date"""
-        
-        results = session.query(Measurement.tobs).filter(Measurement.date >= start_date, Measurement.date <= end_date).all()
         
         
-        all_results = np.ravel(results)
+        rain_results_db = session.query(Measurement.tobs).filter(Measurement.date >= start_date, Measurement.date <= end_date).all()
+        
+        
+        all_rain_results_db = np.ravel(rain_results_db)
 
         
-        tmin = np.min(all_results)
-        tavg = np.average(all_results)
-        tmax = np.max(all_results)
-        return tmin, tavg, tmax
+        temp_min = np.min(all_rain_results_db)
+        tavg = np.average(all_rain_results_db)
+        temp_max = np.max(all_rain_results_db)
+        return temp_min, tavg, temp_max
 
-    tmin, tavg, tmax = calc_temps(start, end)
-    results_dict = {"TMIN": tmin.astype(float), "TAVG": tavg.astype(float), "TMAX": tmax.astype(float)}
+    temp_min, tavg, temp_max = calc_temps(start, end)
+    rain_results_db_dict = {"Minimum Temprature Measured": temp_min.astype(float), "Average Temprature": tavg.astype(float), "Maximum Temprature Measured": temp_max.astype(float)}
 
     
-    return jsonify(results_dict)
+    return jsonify(rain_results_db_dict)
 
 if __name__ == '__main__':
     app.run(debug=False)
